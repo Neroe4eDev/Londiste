@@ -1,0 +1,92 @@
+= londiste(5) =
+
+== NAME ==
+
+londiste - PostgreSQL replication engine written in python
+
+== SYNOPSIS ==
+
+	[londiste]
+	job_name = asd
+
+== DESCRIPTION == 
+
+The londiste configuration file follow the famous .INI syntax. It
+contains only one section named londiste.
+
+Most defaults values are reasonable ones. That means you can only edit
+provider_db, subscriber_db and pgq_queue_name and be done with
+londiste configuration.
+
+== OPTIONS ==
+
+You can configure the following options into the londiste section.
+
+job_name::
+  Each Skytools daemon process must have a unique job_name.
+  Londiste uses it also as consumer name when subscribing to queue.
+
+provider_db::
+  Provider database connection string (DSN).
+
+subscriber_db::
+  Subscriber database connection string (DSN).
+
+pgq_queue_name::
+  Name of the queue to read from.  Several subscribers can
+  read from same queue.
+
+logfile::
+  Where to log londiste activity.
+
+pidfile::
+  Where to store the pid of the main londiste process, the replay one.
+
+lock_timeout::
+  Few operations take lock on provider (provider add/remove, compare, repair).
+  This parameter specifies timeout in seconds (float) how long a lock
+  can be held.  New in version 2.1.8.  Default: 10
+
+loop_delay::
+  How often to poll events from provider.  In seconds (float).
+  Default: 1.
+
+pgq_lazy_fetch::
+   How many events to fetch at a time when processing a batch. Useful when
+   you know a single transaction (maintenance +UPDATE+ command, e.g.) will
+   produce a lot of events in a single batch. When lazily fetching, a cursor
+   is used so as to still process a single batch in a single transaction.
+   Default: 0, always fetch all events of the batch, not using a cursor.
+
+log_count::
+   Number of log files to keep.  Default: 3
+
+log_size::
+   Max size for one log file.  File is rotated if max size is reached.
+   Default: 10485760 (10M)
+
+use_skylog::
+   If set, search for `[./skylog.ini, ~/.skylog.ini, /etc/skylog.ini]`.
+   If found then the file is used as config file for Pythons `logging` module.
+   It allows setting up fully customizable logging setup.
+   Default: 0
+
+
+== EXAMPLE ==
+
+  [londiste]
+  job_name = test_to_subcriber
+  
+  provider_db = dbname=provider port=6000 host=127.0.0.1
+  subscriber_db = dbname=subscriber port=6000 host=127.0.0.1
+  
+  # it will be used as sql ident so no dots/spaces
+  pgq_queue_name = londiste.replika
+  
+  logfile = /tmp/%(job_name)s.log
+  pidfile = /tmp/%(job_name)s.pid
+
+
+== SEE ALSO ==
+
+londiste(1)

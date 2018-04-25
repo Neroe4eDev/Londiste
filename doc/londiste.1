@@ -1,0 +1,435 @@
+'\" t
+.\"     Title: londiste
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 03/13/2012
+.\"    Manual: \ \&
+.\"    Source: \ \&
+.\"  Language: English
+.\"
+.TH "LONDISTE" "1" "03/13/2012" "\ \&" "\ \&"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+londiste \- PostgreSQL replication engine written in python
+.SH "SYNOPSIS"
+.sp
+.nf
+londiste\&.py [option] config\&.ini command [arguments]
+.fi
+.SH "DESCRIPTION"
+.sp
+Londiste is the PostgreSQL replication engine portion of the SkyTools suite, by Skype\&. This suite includes packages implementing specific replication tasks and/or solutions in layers, building upon each other\&.
+.sp
+PgQ is a generic queue implementation based on ideas from Slony\-I\(cqs snapshot based event batching\&. Londiste uses PgQ as its transport mechanism to implement a robust and easy to use replication solution\&.
+.sp
+Londiste is an asynchronous master\-slave(s) replication system\&. Asynchronous means that a transaction commited on the master is not guaranteed to have made it to any slave at the master\(cqs commit time; and master\-slave means that data changes on slaves are not reported back to the master, it\(cqs the other way around only\&.
+.sp
+The replication is trigger based, and you choose a set of tables to replicate from the provider to the subscriber(s)\&. Any data changes occuring on the provider (in a replicated table) will fire the londiste trigger, which fills a queue of events for any subscriber(s) to care about\&.
+.sp
+A replay process consumes the queue in batches, and applies all given changes to any subscriber(s)\&. The initial replication step involves using the PostgreSQL\(cqs COPY command for efficient data loading\&.
+.SH "QUICK-START"
+.sp
+Basic londiste setup and usage can be summarized by the following steps:
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 1.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  1." 4.2
+.\}
+create the subscriber database, with tables to replicate
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 2.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  2." 4.2
+.\}
+edit a londiste configuration file, say conf\&.ini, and a PgQ ticker configuration file, say ticker\&.ini
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 3.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  3." 4.2
+.\}
+install londiste on the provider and subscriber nodes\&. This step requires admin privileges on both provider and subscriber sides, and both install commands can be run remotely:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ londiste\&.py conf\&.ini provider install
+$ londiste\&.py conf\&.ini subscriber install
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 4.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  4." 4.2
+.\}
+launch the PgQ ticker on the provider machine:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ pgqadm\&.py \-d ticker\&.ini ticker
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 5.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  5." 4.2
+.\}
+launch the londiste replay process:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ londiste\&.py \-d conf\&.ini replay
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 6.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  6." 4.2
+.\}
+add tables to replicate from the provider database:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ londiste\&.py conf\&.ini provider add table1 table2 \&.\&.\&.
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 7.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  7." 4.2
+.\}
+add tables to replicate to the subscriber database:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ londiste\&.py conf\&.ini subscriber add table1 table2 \&.\&.\&.
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.sp
+To replicate to more than one subscriber database just repeat each of the described subscriber steps for each subscriber\&.
+.SH "COMMANDS"
+.sp
+The londiste command is parsed globally, and has both options and subcommands\&. Some options are reserved to a subset of the commands, and others should be used without any command at all\&.
+.SH "GENERAL OPTIONS"
+.sp
+This section presents options available to all and any londiste command\&.
+.PP
+\-h, \-\-help
+.RS 4
+show this help message and exit
+.RE
+.PP
+\-q, \-\-quiet
+.RS 4
+make program silent
+.RE
+.PP
+\-v, \-\-verbose
+.RS 4
+make program more verbose
+.RE
+.SH "PROVIDER COMMANDS"
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ londiste\&.py config\&.ini provider <command>
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+Where command is one of:
+.SS "provider install"
+.sp
+Installs code into provider and subscriber database and creates queue\&. Equivalent to doing following by hand:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+CREATE LANGUAGE plpgsql;
+CREATE LANGUAGE plpython;
+\ei \&.\&.\&./contrib/txid\&.sql
+\ei \&.\&.\&./contrib/pgq\&.sql
+\ei \&.\&.\&./contrib/londiste\&.sql
+select pgq\&.create_queue(queue name);
+.fi
+.if n \{\
+.RE
+.\}
+.SS "provider add <table name> \&..."
+.sp
+Registers table(s) on the provider database and adds the londiste trigger to the table(s) which will send events to the queue\&. Table names can be schema qualified with the schema name defaulting to public if not supplied\&.
+.PP
+\-\-all
+.RS 4
+Register all tables in provider database, except those that are under schemas
+\fIpgq\fR,
+\fIlondiste\fR,
+\fIinformation_schema\fR
+or
+\fIpg_*\fR\&.
+.RE
+.SS "provider remove <table name> \&..."
+.sp
+Unregisters table(s) on the provider side and removes the londiste triggers from the table(s)\&. The table removal event is also sent to the queue, so all subscribers unregister the table(s) on their end as well\&. Table names can be schema qualified with the schema name defaulting to public if not supplied\&.
+.SS "provider add\-seq <sequence name> \&..."
+.sp
+Registers a sequence on provider\&.
+.SS "provider remove\-seq <sequence name> \&..."
+.sp
+Unregisters a sequence on provider\&.
+.SS "provider tables"
+.sp
+Shows registered tables on provider side\&.
+.SS "provider seqs"
+.sp
+Shows registered sequences on provider side\&.
+.SH "SUBSCRIBER COMMANDS"
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+londiste\&.py config\&.ini subscriber <command>
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+Where command is one of:
+.SS "subscriber install"
+.sp
+Installs code into subscriber database\&. Equivalent to doing following by hand:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+CREATE LANGUAGE plpgsql;
+\ei \&.\&.\&./contrib/londiste\&.sql
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+This will be done under the Postgres Londiste user, if the tables should be owned by someone else, it needs to be done by hand\&.
+.SS "subscriber add <table name> \&..."
+.sp
+Registers table(s) on subscriber side\&. Table names can be schema qualified with the schema name defaulting to public if not supplied\&.
+.sp
+Switches (optional):
+.PP
+\-\-all
+.RS 4
+Add all tables that are registered on provider to subscriber database
+.RE
+.PP
+\-\-force
+.RS 4
+Ignore table structure differences\&.
+.RE
+.PP
+\-\-expect\-sync
+.RS 4
+Table is already synced by external means so initial COPY is unnecessary\&.
+.RE
+.PP
+\-\-skip\-truncate
+.RS 4
+When doing initial COPY, don\(cqt remove old data\&.
+.RE
+.SS "subscriber remove <table name> \&..."
+.sp
+Unregisters table(s) from subscriber\&. No events will be applied to the table anymore\&. Actual table will not be touched\&. Table names can be schema qualified with the schema name defaulting to public if not supplied\&.
+.SS "subscriber add\-seq <sequence name> \&..."
+.sp
+Registers a sequence on subscriber\&.
+.SS "subscriber remove\-seq <sequence name> \&..."
+.sp
+Unregisters a sequence on subscriber\&.
+.SS "subscriber resync <table name> \&..."
+.sp
+Tags table(s) as "not synced"\&. Later the replay process will notice this and launch copy process(es) to sync the table(s) again\&.
+.SS "subscriber tables"
+.sp
+Shows registered tables on the subscriber side, and the current state of each table\&. Possible state values are:
+.PP
+NEW
+.RS 4
+the table has not yet been considered by londiste\&.
+.RE
+.PP
+in\-copy
+.RS 4
+Full\-table copy is in progress\&.
+.RE
+.PP
+catching\-up
+.RS 4
+Table is copied, missing events are replayed on to it\&.
+.RE
+.PP
+wanna\-sync:<tick\-id>
+.RS 4
+The "copy" process catched up, wants to hand the table over to "replay"\&.
+.RE
+.PP
+do\-sync:<tick_id>
+.RS 4
+"replay" process is ready to accept it\&.
+.RE
+.PP
+ok
+.RS 4
+table is in sync\&.
+.RE
+.SS "subscriber fkeys"
+.sp
+Show pending and active foreign keys on tables\&. Takes optional type argument \- pending or active\&. If no argument is given, both types are shown\&.
+.sp
+Pending foreign keys are those that were removed during COPY time but have not restored yet, The restore happens autmatically if both tables are synced\&.
+.SS "subscriber triggers"
+.sp
+Show pending and active triggers on tables\&. Takes optional type argument \- pending or active\&. If no argument is given, both types are shown\&.
+.sp
+Pending triggers keys are those that were removed during COPY time but have not restored yet, The restore of triggers does not happen autmatically, it needs to be done manually with restore\-triggers command\&.
+.SS "subscriber restore\-triggers <table name>"
+.sp
+Restores all pending triggers for single table\&. Optionally trigger name can be given as extra argument, then only that trigger is restored\&.
+.SS "subscriber register"
+.sp
+Register consumer on queue\&. This usually happens automatically when replay is launched, but
+.SS "subscriber unregister"
+.sp
+Unregister consumer from provider\(cqs queue\&. This should be done if you want to shut replication down\&.
+.SH "REPLICATION COMMANDS"
+.SS "replay"
+.sp
+The actual replication process\&. Should be run as daemon with \-d switch, because it needs to be always running\&.
+.sp
+It\(cqs main task is to get batches of events from PgQ and apply them to subscriber database\&.
+.sp
+Switches:
+.PP
+\-d, \-\-daemon
+.RS 4
+go background
+.RE
+.PP
+\-r, \-\-reload
+.RS 4
+reload config (send SIGHUP)
+.RE
+.PP
+\-s, \-\-stop
+.RS 4
+stop program safely (send SIGINT)
+.RE
+.PP
+\-k, \-\-kill
+.RS 4
+kill program immidiately (send SIGTERM)
+.RE
+.SH "UTILITY COMMAND"
+.SS "repair <table name> \&..."
+.sp
+Attempts to achieve a state where the table(s) is/are in sync, compares them, and writes out SQL statements that would fix differences\&.
+.sp
+Syncing happens by locking provider tables against updates and then waiting until the replay process has applied all pending changes to subscriber database\&. As this is dangerous operation, it has a hardwired limit of 10 seconds for locking\&. If the replay process does not catch up in that time, the locks are released and the repair operation is cancelled\&.
+.sp
+Comparing happens by dumping out the table contents of both sides, sorting them and then comparing line\-by\-line\&. As this is a CPU and memory\-hungry operation, good practice is to run the repair command on a third machine to avoid consuming resources on either the provider or the subscriber\&.
+.SS "compare <table name> \&..."
+.sp
+Syncs tables like repair, but just runs SELECT count(*) on both sides to get a little bit cheaper, but also less precise, way of checking if the tables are in sync\&.
+.SH "CONFIGURATION"
+.sp
+Londiste and PgQ both use INI configuration files, your distribution of skytools include examples\&. You often just have to edit the database connection strings, namely db in PgQ ticker\&.ini and provider_db and subscriber_db in londiste conf\&.ini as well as logfile and pidfile to adapt to you system paths\&.
+.sp
+See londiste(5)\&.
+.SH "SEE ALSO"
+.sp
+londiste(5)
+.sp
+\m[blue]\fBhttps://developer\&.skype\&.com/SkypeGarage/DbProjects/SkyTools/\fR\m[]
+.sp
+\m[blue]\fBReference guide\fR\m[]\&\s-2\u[1]\d\s+2
+.SH "NOTES"
+.IP " 1." 4
+Reference guide
+.RS 4
+\%http://skytools.projects.postgresql.org/doc/londiste.ref.html
+.RE

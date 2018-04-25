@@ -1,0 +1,18 @@
+
+= Skytools ToDo list =
+
+== Ideas for 2.1 ==
+
+ * Frozen code, no new features.
+ * Fix things in existing code.
+
+== Ideas for 2.2 ==
+
+ * Use pgq.sqltriga() in Londiste by default
+ * Backport triggers code from 3.0
+ * Backport truncate trigger 3.0
+ * londiste: support creating slave from master by pg_dump / PITR.
+
+ * Backport EXECUTE 3.0?
+ * Use session_replication_role?
+

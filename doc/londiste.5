@@ -1,0 +1,158 @@
+'\" t
+.\"     Title: londiste
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 03/13/2012
+.\"    Manual: \ \&
+.\"    Source: \ \&
+.\"  Language: English
+.\"
+.TH "LONDISTE" "5" "03/13/2012" "\ \&" "\ \&"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+londiste \- PostgreSQL replication engine written in python
+.SH "SYNOPSIS"
+.sp
+.nf
+[londiste]
+job_name = asd
+.fi
+.SH "DESCRIPTION"
+.sp
+The londiste configuration file follow the famous \&.INI syntax\&. It contains only one section named londiste\&.
+.sp
+Most defaults values are reasonable ones\&. That means you can only edit provider_db, subscriber_db and pgq_queue_name and be done with londiste configuration\&.
+.SH "OPTIONS"
+.sp
+You can configure the following options into the londiste section\&.
+.PP
+job_name
+.RS 4
+Each Skytools daemon process must have a unique job_name\&. Londiste uses it also as consumer name when subscribing to queue\&.
+.RE
+.PP
+provider_db
+.RS 4
+Provider database connection string (DSN)\&.
+.RE
+.PP
+subscriber_db
+.RS 4
+Subscriber database connection string (DSN)\&.
+.RE
+.PP
+pgq_queue_name
+.RS 4
+Name of the queue to read from\&. Several subscribers can read from same queue\&.
+.RE
+.PP
+logfile
+.RS 4
+Where to log londiste activity\&.
+.RE
+.PP
+pidfile
+.RS 4
+Where to store the pid of the main londiste process, the replay one\&.
+.RE
+.PP
+lock_timeout
+.RS 4
+Few operations take lock on provider (provider add/remove, compare, repair)\&. This parameter specifies timeout in seconds (float) how long a lock can be held\&. New in version 2\&.1\&.8\&. Default: 10
+.RE
+.PP
+loop_delay
+.RS 4
+How often to poll events from provider\&. In seconds (float)\&. Default: 1\&.
+.RE
+.PP
+pgq_lazy_fetch
+.RS 4
+How many events to fetch at a time when processing a batch\&. Useful when you know a single transaction (maintenance
+UPDATE
+command, e\&.g\&.) will produce a lot of events in a single batch\&. When lazily fetching, a cursor is used so as to still process a single batch in a single transaction\&. Default: 0, always fetch all events of the batch, not using a cursor\&.
+.RE
+.PP
+log_count
+.RS 4
+Number of log files to keep\&. Default: 3
+.RE
+.PP
+log_size
+.RS 4
+Max size for one log file\&. File is rotated if max size is reached\&. Default: 10485760 (10M)
+.RE
+.PP
+use_skylog
+.RS 4
+If set, search for
+[\&./skylog\&.ini, ~/\&.skylog\&.ini, /etc/skylog\&.ini]\&. If found then the file is used as config file for Pythons
+logging
+module\&. It allows setting up fully customizable logging setup\&. Default: 0
+.RE
+.SH "EXAMPLE"
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+[londiste]
+job_name = test_to_subcriber
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+provider_db = dbname=provider port=6000 host=127\&.0\&.0\&.1
+subscriber_db = dbname=subscriber port=6000 host=127\&.0\&.0\&.1
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+# it will be used as sql ident so no dots/spaces
+pgq_queue_name = londiste\&.replika
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+logfile = /tmp/%(job_name)s\&.log
+pidfile = /tmp/%(job_name)s\&.pid
+.fi
+.if n \{\
+.RE
+.\}
+.SH "SEE ALSO"
+.sp
+londiste(1)

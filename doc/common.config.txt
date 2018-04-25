@@ -1,0 +1,47 @@
+
+=== Common configuration parameters ===
+
+  job_name::
+    Name for particulat job the script does.  Script will log under this name
+    to logdb/logserver.  The name is also used as default for PgQ consumer name.
+    It should be unique.
+
+  pidfile::
+    Location for pid file.  If not given, script is disallowed to daemonize.
+
+  logfile::
+    Location for log file.
+
+  loop_delay::
+    If continuisly running process, how long to sleep after each work loop,
+    in seconds.  Default: 1.
+ 
+  connection_lifetime::
+    Close and reconnect older database connections.
+
+  log_count::
+    Number of log files to keep.  Default: 3
+    
+  log_size::
+    Max size for one log file.  File is rotated if max size is reached.
+    Default: 10485760 (10M)
+
+  use_skylog::
+    If set, search for `[./skylog.ini, ~/.skylog.ini, /etc/skylog.ini]`.
+    If found then the file is used as config file for Pythons `logging` module.
+    It allows setting up fully customizable logging setup.
+
+ifdef::pgq[]
+
+=== Common PgQ consumer parameters ===
+
+  pgq_queue_name::
+    Queue name to attach to.
+    No default.
+
+  pgq_consumer_id::
+    Consumers ID to use when registering.
+    Default: %(job_name)s
+
+endif::pgq[]
+
